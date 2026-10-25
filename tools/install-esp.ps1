@@ -146,3 +146,7 @@ if ($BootNext) {
     Log('BootNext=0x0080 (one-shot on next boot)')
 }
 Log('DONE. F8 -> "TU102 Unlock" to boot unlocked.')
+
+# 用完卸载 ESP 盘符,恢复隐藏状态(不影响固件引导)
+mountvol S: /D
+Log('ESP drive letter S: removed (ESP hidden again)')

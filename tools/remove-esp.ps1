@@ -52,5 +52,6 @@ Write-Host 'BootOrder restored from backup'
 mountvol S: /S
 Remove-Item S:\EFI\TU102 -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host 'ESP \EFI\TU102 removed'
+mountvol S: /D   # 恢复 ESP 隐藏状态
 Write-Host '完成。建议再完全关机断电一次回到最干净状态。'
 Write-Host '(可选)彻底原厂化:删除注册表 EnableGpuFirmware 并恢复 BIOS:Above 4G / Secure Boot / Fast Boot'
