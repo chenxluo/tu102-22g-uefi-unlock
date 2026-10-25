@@ -1,0 +1,16 @@
+# firmware inputs and build outputs — never commit
+efi-unlock-tu102/blobs/
+efi-unlock-tu102/*.o
+efi-unlock-tu102/*.so
+efi-unlock-tu102/*.EFI
+*.EFI
+
+# private machine data
+local/
+nvram-backup/
+*.bin
+!efi-unlock-tu102/blobs/.gitkeep
+
+# logs that may contain device identifiers
+50hx_log.txt
+*prom*.bin
