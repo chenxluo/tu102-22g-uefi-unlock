@@ -23,13 +23,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----------------------------------------------------------------------------
-ADDITIONAL NOTICE — firmware inputs are NOT part of this repository
-
-The build process downloads and embeds NVIDIA firmware images (the TU102
-booter/GSP/V67 payload blobs and your own card's FWSEC extraction). Those
-binaries are governed by NVIDIA's terms, are fetched at build time by the
-user, are hash-verified, and must not be committed to or redistributed from
-this repository. No compiled .EFI artifacts may be published either, for the
-same reason.
