@@ -37,6 +37,10 @@ Windows,由 `EnableGpuFirmware=1` 驱动模式接受该状态。
    固件被迫整机重 POST → 解锁丢失。已移除,改为 DevicePath 文件加载
 4. GPT 全盘枚举得到的设备路径缺 HD 分区节点 → `LoadImage` NOT_FOUND。
    现按分区起始 LBA 反查分区句柄、重构固件认可的完整路径
+5. **双卡串行按序解锁支持**: 针对双卡平台（主显示卡 + 副无头计算卡）实现按序隔离预检与原子解锁
+6. **热重启寄存器漂移修复**: 取消对非目标寄存器 SS0/SS1 的强等门禁，消除 Windows 热重启后拦截 `0x800000000000001a`
+7. **零依赖极速评测与 GSP 助手**: 提供 `bench/quick_fp_bench.py`（免装 PyTorch，1.5 秒即得真实 TFLOPS）与 `tools/set-gsp.ps1` 一键管理 GSP 模式（消灭代码 43）
+8. **完整 Windows 部署踩坑实录与启动盘集成**: 详见 [docs/WINDOWS_DEPLOYMENT_NOTES.md](docs/WINDOWS_DEPLOYMENT_NOTES.md)
 
 ## 硬件/环境要求
 

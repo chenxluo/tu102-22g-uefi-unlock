@@ -4,6 +4,10 @@ efi-unlock-tu102/*.o
 efi-unlock-tu102/*.so
 efi-unlock-tu102/*.EFI
 *.EFI
+*.rom
+*blobs*.h
+*.exe
+*.zip
 
 # private machine data
 local/
@@ -11,6 +15,9 @@ nvram-backup/
 *.bin
 !efi-unlock-tu102/blobs/.gitkeep
 
-# logs that may contain device identifiers
+# logs and caches
 50hx_log.txt
 *prom*.bin
+*.log
+__pycache__/
+*.pyc
