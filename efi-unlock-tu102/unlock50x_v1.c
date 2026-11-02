@@ -309,6 +309,8 @@ u40x_entry(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE *SystemTable_)
  * after the native PROM capture (see PORT-NOTES.md).
  * ==========================================================================*/
 #define U40X_TARGET_DID         0x1E04u
+#define U40X_TARGET_DID2        0x1E07u
+#define IS_TARGET_DID(d)        ((d) == U40X_TARGET_DID || (d) == U40X_TARGET_DID2)
 
 #define VAL_PLM_OPEN            0xFFFFFFFFUL
 #define VAL_SS0_UNLOCKED        0x88888888UL
@@ -553,13 +555,13 @@ extern const UINT8 gsp_bl_tu102[];
  * span 0xE00 -> 0x057FE000/0x057FEE00 (KohakUnlock post-FWSEC live values).
  * Upstream 50HX values were: 0x9A00/0x9A00/0x3F0/0x9DF0/0x360/0x3B0 and
  * 0x27FE00000/0x027FE000/0x027FEE00 at fbSize 0x280000000 (10 GiB). */
-#define FW50_CODE_SIZE          0x00009800UL   /* imemLoad */
-#define FW50_DATA_OFF           0x00009800UL   /* data start inside the blob */
-#define FW50_DMEM_SIZE          0x00000420UL   /* dmemLoad */
-#define FW50_BLOB_SIZE          0x00009C20UL   /* code+data = 39968 */
+#define FW50_CODE_SIZE          0x00009A00UL   /* imemLoad */
+#define FW50_DATA_OFF           0x00009A00UL   /* data start inside the blob */
+#define FW50_DMEM_SIZE          0x000003F0UL   /* dmemLoad */
+#define FW50_BLOB_SIZE          0x00009DF0UL   /* code+data = 40432 */
 #define FW50_IFACE_OFF          0x000000E0UL   /* interface header inside data */
-#define FW50_MAPPER_OFF         0x00000390UL   /* DMEMMAPPER v3 (id4 entry) */
-#define FW50_CMDIN_OFF          0x000003E0UL   /* cmd_in_buffer */
+#define FW50_MAPPER_OFF         0x00000360UL   /* DMEMMAPPER v3 (id4 entry) */
+#define FW50_CMDIN_OFF          0x000003B0UL   /* cmd_in_buffer */
 #define FW50_FRTS_OFFSET        0x57FE00000ULL /* frtsOffset (22GB FB - 2MB) */
 #define FW50_WPR2_LO_UP         0x057FE000UL
 #define FW50_WPR2_HI_UP         0x057FEE00UL
@@ -635,7 +637,7 @@ detect_fb_size(EFI_HANDLE IH)
  * (same semantics as the TU102 driver s_prepareHsFalconDirect / s_imemCopyTo_TU102). */
 #define FW50_NS_SIZE            0x00000400UL   /* image[0..0x400) NS segment */
 #define FW50_SEC_BASE           0x00000400UL   /* secure segment IMEM / image start */
-#define FW50_SEC_SIZE           0x00009400UL   /* image[0x400..0x9800) SEC segment */
+#define FW50_SEC_SIZE           0x00009600UL   /* image[0x400..0x9A00) SEC segment */
 #define FW50_TAG_NS             0x00000000UL   /* NS tag start (target>>8) */
 #define FW50_TAG_SEC            0x00000004UL   /* SEC tag start (0x400>>8) */
 
@@ -4291,7 +4293,7 @@ static int u40x_find_gpu_pass(INTN enc)
         if (id == 0xFFFFFFFFu)
             continue;
         if ((id & 0xFFFFu) == 0x10DEu &&
-            ((id >> 16) & 0xFFFFu) == U40X_TARGET_DID) {
+            IS_TARGET_DID((id >> 16) & 0xFFFFu)) {
             gBus = fastL[k][0]; gDev = fastL[k][1]; gFn = fastL[k][2];
             u40x_enc_found = enc;
             Print(L"[TU102 f] fast hit enc=%d %02x:%02x.%x id=0x%08x\n",
@@ -4314,7 +4316,7 @@ static int u40x_find_gpu_pass(INTN enc)
                 if (id == 0xFFFFFFFFu)
                     continue;
                 if ((id & 0xFFFFu) == 0x10DEu &&
-                    ((id >> 16) & 0xFFFFu) == U40X_TARGET_DID) {
+                    IS_TARGET_DID((id >> 16) & 0xFFFFu)) {
                     gBus = b; gDev = d; gFn = f;
                     u40x_enc_found = enc;
                     Print(L"[TU102 f] sweep hit enc=%d %02x:%02x.%x id=0x%08x\n",
