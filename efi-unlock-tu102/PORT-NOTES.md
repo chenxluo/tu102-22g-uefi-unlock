@@ -40,6 +40,14 @@
    `FileDevicePath(整盘句柄, path)` 缺 HD(partition) 节点 → 新增按分区起始 LBA
    反查分区句柄、重构完整设备路径的兜底(实测命中后一次 StartImage 成功直通)
 
+### F. 双卡串行解锁与热重启漂移修复
+1. **双卡串行调度**: 统一使用方案 B 影驰 310W 公版固件 (`276672.rom`, Subsystem `10de:1e04`),
+   按序遍历 Card 0 (主显示) 与 Card 1 (无头副卡), 独立管理 BAR0 窗口与 Falcon 握手
+2. **热重启 SS0/SS1 漂移放行**: Windows 驱动与 GSP-RM 运行后动态保留的 SS0/SS1 状态不再
+   触发 `0x800000000000001a` 致命拦截, 降级为只读记录并放行, 完整保留 BOOT0、容量守卫与停机门禁
+3. **极速张量基准测试**: 提供 `bench/quick_fp_bench.py` 直接调用系统 cuBLAS, 1.5 秒完成
+   4096 GEMM Tensor Core 吞吐率判定
+
 ### D. 诊断与安全(DUMP_ONLY 构建)
 - `DUMP_ONLY=1` 产出零固件依赖的 `TU102DUMP.EFI`:L0-L3 里程碑打印 + 拍照暂停、
   capacity/workspace 预检、双窗口只读转储(`+0x300000` 有效、`+0x11000` 对照)、
