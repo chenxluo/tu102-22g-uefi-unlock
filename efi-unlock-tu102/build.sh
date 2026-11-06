@@ -74,6 +74,21 @@ else
         echo "adjust the geometry constants, and opt in with TU102_ALLOW_FWSEC=1." >&2
         exit 1
     fi
+    # 2280ti server port: GPU0 (10de:1e07) FWSEC is OPTIONAL — from its own
+    # PROM dump via extract_fwsec.py. Present without a pinned hash requires
+    # an explicit opt-in (self-vouch); pin it here once verified:
+    #   TU102_G0_SHA=<sha256>  (or edit FWSEC_G0 below after the dump session)
+    FWSEC_G0_DEFAULT_SHA=""   # fill after GPU0's dump is verified
+    if [ -f blobs/fwsec_g0.bin ]; then
+        G0_OK=0
+        [ -n "$FWSEC_G0_DEFAULT_SHA" ] && [ "$(sha blobs/fwsec_g0.bin)" = "$FWSEC_G0_DEFAULT_SHA" ] && G0_OK=1
+        [ "${TU102_G0_SHA:-}" != "" ] && [ "$(sha blobs/fwsec_g0.bin)" = "$TU102_G0_SHA" ] && G0_OK=1
+        if [ "$G0_OK" != "1" ] && [ "${TU102_ALLOW_FWSEC:-0}" != "1" ]; then
+            echo "fwsec_g0.bin present but not pinned/verified (set TU102_G0_SHA or TU102_ALLOW_FWSEC=1)" >&2
+            exit 1
+        fi
+        echo "fwsec_g0.bin: $( [ "$G0_OK" = 1 ] && echo hash-verified || echo self-vouched )"
+    fi
     echo "=== UNLOCK build (inputs hash-verified) ==="
     # VBIOS_DUMP: the (fixed) upstream PROM dumper also runs during unlock boots
     # and refreshes \50hx_vbios.bin on the boot medium — matches the tested config.
@@ -86,6 +101,8 @@ for f in booter_ucode_dbg.bin fwsec_50hx_prod.bin fwsec_50hx_dbg.bin \
          sec2_ucode_vbios_49.bin sec2_ucode_vbios_89.bin; do
     [ -f "blobs/$f" ] || ( cd blobs && printf '\0' > "$f" )
 done
+# 2280ti port: GPU0 FWSEC placeholder when absent (size gate skips the card)
+[ -f "blobs/fwsec_g0.bin" ] || ( cd blobs && printf '\0' > fwsec_g0.bin )
 # dump build: every absent blob becomes a placeholder too
 if [ "$DUMP" = "1" ]; then
     for f in v67_payload.bin booter_ucode_prod.bin gsp_rm_boot_dbg.bin \
@@ -93,6 +110,11 @@ if [ "$DUMP" = "1" ]; then
         [ -f "blobs/$f" ] || ( cd blobs && printf '\0' > "$f" )
     done
 fi
+# 2280ti port: real blob sizes for the runtime per-card size gate
+sz() { if [ -f "blobs/$1" ]; then wc -c < "blobs/$1" | tr -d ' \n'; else echo 0; fi; }
+printf '#define FWSEC_G1_SIZE %s\n#define FWSEC_G0_SIZE %s\n' \
+    "$(sz fwsec_native.bin)" "$(sz fwsec_g0.bin)" > blob_sizes.h
+echo "blob_sizes.h: G1=$(sz fwsec_native.bin)B G0=$(sz fwsec_g0.bin)B (39968 = full blob)"
 
 echo "=== 1. compile $SRC ==="
 gcc -c -O2 -fno-stack-protector -fpic -ffreestanding \
@@ -130,14 +152,15 @@ embed booter_ucode_prod.bin   booter_ucode_prod
 embed gsp_rm_boot_dbg.bin     gsp_rm_boot_dbg
 embed fwsec_50hx_prod.bin     fwsec_50hx_prod_bin
 embed fwsec_native.bin        fwsec_native_bin
+embed fwsec_g0.bin            fwsec_g0_bin
 embed fwsec_50hx_dbg.bin      fwsec_50hx_dbg_bin
 embed sec2_ucode_vbios_49.bin sec2_ucode_vbios_49
 embed sec2_ucode_vbios_89.bin sec2_ucode_vbios_89
 embed bl_gsp_tu102.bin        gsp_bl_tu102
 
 OBJS="$OBJ v67_payload_bin.o booter_ucode_dbg.o booter_ucode_prod.o \
-gsp_rm_boot_dbg.o fwsec_50hx_prod_bin.o fwsec_native_bin.o fwsec_50hx_dbg_bin.o \
-sec2_ucode_vbios_49.o sec2_ucode_vbios_89.o gsp_bl_tu102.o"
+gsp_rm_boot_dbg.o fwsec_50hx_prod_bin.o fwsec_native_bin.o fwsec_g0_bin.o \
+fwsec_50hx_dbg_bin.o sec2_ucode_vbios_49.o sec2_ucode_vbios_89.o gsp_bl_tu102.o"
 
 echo "=== 3. link ==="
 ld -nostdlib -znocombreloc -T "$EFI_LIB/elf_x86_64_efi.lds" -shared -Bsymbolic \

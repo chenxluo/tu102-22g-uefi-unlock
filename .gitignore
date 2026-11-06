@@ -14,3 +14,4 @@ nvram-backup/
 # logs that may contain device identifiers
 50hx_log.txt
 *prom*.bin
+efi-unlock-tu102/blob_sizes.h
