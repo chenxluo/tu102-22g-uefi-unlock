@@ -79,7 +79,7 @@ else
     # an explicit opt-in (self-vouch); pin it here once verified:
     #   TU102_G0_SHA=<sha256>  (or edit FWSEC_G0 below after the dump session)
     FWSEC_G0_DEFAULT_SHA=""   # fill after GPU0's dump is verified
-    if [ -f blobs/fwsec_g0.bin ]; then
+    if [ -f blobs/fwsec_g0.bin ] && [ "$(wc -c < blobs/fwsec_g0.bin)" -gt 1 ]; then
         G0_OK=0
         [ -n "$FWSEC_G0_DEFAULT_SHA" ] && [ "$(sha blobs/fwsec_g0.bin)" = "$FWSEC_G0_DEFAULT_SHA" ] && G0_OK=1
         [ "${TU102_G0_SHA:-}" != "" ] && [ "$(sha blobs/fwsec_g0.bin)" = "$TU102_G0_SHA" ] && G0_OK=1
