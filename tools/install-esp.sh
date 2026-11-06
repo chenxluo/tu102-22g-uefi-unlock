@@ -30,7 +30,7 @@ mkdir -p local/nvram-backup
 efibootmgr -v > "local/nvram-backup/nvram-$(date +%Y%m%d-%H%M%S).txt"
 echo "NVRAM backed up to local/nvram-backup/"
 
-entry_id() { efibootmgr | awk -v L="$LABEL" '$NF==L{gsub(/Boot|\*.*/,"",$1); print $1}' | head -1; }
+entry_id() { efibootmgr | awk -v L="$LABEL" '$2==L{sub(/^\*/,"",$1); print substr($1,5)}' | head -1; }
 OLD=$(entry_id)
 [ -n "$OLD" ] && { efibootmgr -q -b "$OLD" -B; echo "removed stale Boot$OLD"; }
 
