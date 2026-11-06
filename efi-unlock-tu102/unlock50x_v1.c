@@ -730,18 +730,24 @@ static UINT8    *g_ourImageBase = NULL; /* TU102 port: loaded image base for
  * first 64 bytes of the file — but every gnu-efi binary (shim, grub, us)
  * carries the same generic DOS stub, so on an Ubuntu ESP it skipped EVERY
  * loader and the chainload degraded to return-to-BDS (some boards re-POST).
- * Compare 64 bytes from e_lfanew instead: PE signature + TimeDateStamp +
- * section-table fields are unique per build. head must hold >= 0x400 valid
- * file bytes. */
+ * Comparing the PE header itself doesn't work either: the loader patches
+ * OptionalHeader.ImageBase/CheckSum in memory (proved in OVMF). Compare the
+ * SECTION TABLE instead — names + sizes + RVAs are unique per build and the
+ * loader never rewrites them. head must hold >= 0x400 valid file bytes. */
 static BOOLEAN u40x_is_our_probe(const UINT8 *head, UINT64 fileSize)
 {
-    UINT32 peOff;
+    UINT32 peOff, secOff;
+    UINT16 optSize;
     if (!g_ourImageBase || fileSize < 0x400)
         return FALSE;
     peOff = *(const UINT32 *)(head + 0x3C);
-    if (peOff < 0x40 || peOff > 0x380 || (UINT64)peOff + 64 > fileSize)
+    if (peOff < 0x40 || peOff > 0x300 || (UINT64)peOff + 88 > fileSize)
         return FALSE;
-    return CompareMem(head + peOff, g_ourImageBase + peOff, 64) == 0;
+    optSize = *(const UINT16 *)(head + peOff + 16);  /* COFF SizeOfOptionalHeader */
+    secOff = peOff + 24 + optSize;
+    if (secOff + 64 > 0x400)
+        return FALSE;                                /* keep within head[1024] */
+    return CompareMem(head + secOff, g_ourImageBase + secOff, 64) == 0;
 }
 static UINT32 g_Wpr2LoPreKill = 0;
 static UINT32 g_Wpr2HiPreKill = 0;
