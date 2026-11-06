@@ -78,7 +78,7 @@ else
     # PROM dump via extract_fwsec.py. Present without a pinned hash requires
     # an explicit opt-in (self-vouch); pin it here once verified:
     #   TU102_G0_SHA=<sha256>  (or edit FWSEC_G0 below after the dump session)
-    FWSEC_G0_DEFAULT_SHA=""   # fill after GPU0's dump is verified
+    FWSEC_G0_DEFAULT_SHA="794edf2193c662a956d6eca63b7223914c597f295e7c5c43300812346cb8ad56"   # GPU0 1e07 server PROM dump 2026-11-06
     if [ -f blobs/fwsec_g0.bin ] && [ "$(wc -c < blobs/fwsec_g0.bin)" -gt 1 ]; then
         G0_OK=0
         [ -n "$FWSEC_G0_DEFAULT_SHA" ] && [ "$(sha blobs/fwsec_g0.bin)" = "$FWSEC_G0_DEFAULT_SHA" ] && G0_OK=1

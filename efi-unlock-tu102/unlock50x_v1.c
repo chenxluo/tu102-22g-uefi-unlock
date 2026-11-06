@@ -726,6 +726,23 @@ static UINT8    *g_ourImageBase = NULL; /* TU102 port: loaded image base for
                                       * content-compare self-detection (the old
                                       * size-only check compared FILE size vs
                                       * in-memory ImageSize: never equal) */
+/* 2280ti server port: robust self-image probe. The old check compared the
+ * first 64 bytes of the file — but every gnu-efi binary (shim, grub, us)
+ * carries the same generic DOS stub, so on an Ubuntu ESP it skipped EVERY
+ * loader and the chainload degraded to return-to-BDS (some boards re-POST).
+ * Compare 64 bytes from e_lfanew instead: PE signature + TimeDateStamp +
+ * section-table fields are unique per build. head must hold >= 0x400 valid
+ * file bytes. */
+static BOOLEAN u40x_is_our_probe(const UINT8 *head, UINT64 fileSize)
+{
+    UINT32 peOff;
+    if (!g_ourImageBase || fileSize < 0x400)
+        return FALSE;
+    peOff = *(const UINT32 *)(head + 0x3C);
+    if (peOff < 0x40 || peOff > 0x380 || (UINT64)peOff + 64 > fileSize)
+        return FALSE;
+    return CompareMem(head + peOff, g_ourImageBase + peOff, 64) == 0;
+}
 static UINT32 g_Wpr2LoPreKill = 0;
 static UINT32 g_Wpr2HiPreKill = 0;
 
@@ -3755,7 +3772,7 @@ preload_scan_volume(EFI_HANDLE h, Cmp90Fat *f)
 {
     Cmp90ScanCtx c;
     UINT8 *buf;
-    UINT8 buf64[64];            /* TU102 port: self-image content probe */
+    UINT8 head[1024];          /* 2280ti port: PE-header self-image probe */
     CHAR16 *keep;
     EFI_STATUS st;
 
@@ -3775,11 +3792,10 @@ preload_scan_volume(EFI_HANDLE h, Cmp90Fat *f)
         Print(L"[preload] scan: bad size %llu - skipped\n", c.bestSize);
         return FALSE;
     }
-    /* issue #36: our own binary deployed as \EFI\Boot\bootx64.efi */
-    if ((UINTN)c.bestSize == g_ourImageSize ||
-        (g_ourImageBase && c.bestSize >= 64 &&
-         cmp90_fat_read_file(f, c.bestClus, 64, buf64) == EFI_SUCCESS &&
-         CompareMem(buf64, g_ourImageBase, 64) == 0)) {
+    /* issue #36 + 2280ti fix: see u40x_is_our_probe. */
+    if (c.bestSize >= sizeof(head) &&
+        cmp90_fat_read_file(f, c.bestClus, sizeof(head), head) == EFI_SUCCESS &&
+        u40x_is_our_probe(head, c.bestSize)) {
         Print(L"[preload] scan: %s is our own image - skipped\n", c.bestPath);
         return FALSE;
     }
@@ -3901,14 +3917,9 @@ static BOOLEAN preload_try_volume(EFI_HANDLE h, EFI_BLOCK_IO_PROTOCOL *bio,
 
         if (EFI_ERROR(cmp90_fat_load_path(&f, path, &fb, &fsz)))
             continue;
-        /* issue #36: the Windows installer also copies our EFI to
-         * \EFI\Boot\bootx64.efi — loading that would restart us in a loop.
-         * TU102 port: the size-only check compared the FILE size with the
-         * in-memory ImageSize (never equal), so a USB \EFI\Boot\bootx64.efi
-         * boot chained into itself forever. Also compare content. */
-        if (fsz == g_ourImageSize ||
-            (g_ourImageBase && fsz >= 64 &&
-             CompareMem(fb, g_ourImageBase, 64) == 0)) {
+        /* issue #36 + 2280ti fix: see u40x_is_our_probe (the old DOS-stub
+         * compare skipped every gnu-efi loader on a Linux ESP). */
+        if (u40x_is_our_probe(fb, fsz)) {
             Print(L"[preload] %s is our own image - skipped\n", path);
             cmp90_free(fb);
             continue;
